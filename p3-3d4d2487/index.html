@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" style="height: auto; --vh: 7.68px; overflow: visible; scrollbar-width: none; font-size: clamp(12px, 10.2241px + 0.4228vw, 16px);"><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8"><script src="index_data/telemetry_sdk.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>動物成語小達人</title>
+  <script src="index_data/3.4.17"></script>
+  <script src="index_data/lucide.min.js"></script>
+  <link href="index_data/css2.css" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #183546;
+      --cream: #fff9e8;
+      --paper: #fffdf6;
+      --orange: #ef7d35;
+      --teal: #227d78;
+      --yellow: #f4bd3f;
+      --red: #ca4d42;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      width: 100%;
+      margin: 0;
+      color: var(--ink);
+      font-family: "Alegreya Sans", sans-serif;
+      overflow-x: hidden;
+    }
+
+    .game-shell {
+      width: 100%;
+      min-height: calc(100 * min(var(--vh, 1vh), 1vh));
+      padding: 28px 18px 40px;
+      position: relative;
+      isolation: isolate;
+    }
+
+    .game-shell::before,
+    .game-shell::after {
+      content: "";
+      position: fixed;
+      z-index: -1;
+      border-radius: 999px;
+      opacity: .18;
+      pointer-events: none;
+    }
+
+    .game-shell::before {
+      width: 290px;
+      height: 290px;
+      background: #f4bd3f;
+      top: -120px;
+      left: -100px;
+    }
+
+    .game-shell::after {
+      width: 340px;
+      height: 340px;
+      background: #38a39b;
+      right: -160px;
+      bottom: -130px;
+    }
+
+    .playboard {
+      width: 100%;
+      max-width: 790px;
+      margin: 0 auto;
+    }
+
+    .title-font { font-family: "Eczar", serif; }
+
+    .hero {
+      border: 4px solid #183546;
+      border-radius: 30px;
+      box-shadow: 7px 8px 0 #183546;
+      overflow: hidden;
+      animation: rise .6s ease both;
+    }
+
+    .hero-inner {
+      display: flex;
+      gap: 18px;
+      align-items: center;
+      padding: 22px 24px;
+    }
+
+    .animal-orbit {
+      width: 74px;
+      height: 74px;
+      flex: 0 0 auto;
+      border: 3px solid #183546;
+      background: #fff4be;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      transform: rotate(-7deg);
+    }
+
+    .score-strip {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 14px;
+      margin: 25px 4px 18px;
+      animation: rise .6s .1s ease both;
+    }
+
+    .meter-track {
+      height: 14px;
+      border: 2px solid #183546;
+      border-radius: 999px;
+      overflow: hidden;
+      background: #fffdf6;
+    }
+
+    .meter-fill {
+      height: 100%;
+      width: 33.333%;
+      background: #ef7d35;
+      transition: width .35s ease;
+    }
+
+    .quiz-panel {
+      border: 3px solid #183546;
+      border-radius: 26px;
+      box-shadow: 5px 6px 0 rgba(24, 53, 70, .2);
+      padding: 24px;
+      animation: rise .6s .18s ease both;
+    }
+
+    .quiz-screen[hidden],
+    .feedback[hidden],
+    .hint-box[hidden],
+    .next-wrap[hidden],
+    .finish-screen[hidden] {
+      display: none;
+    }
+
+    .round-kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 800;
+      letter-spacing: .04em;
+    }
+
+    .idiom-card {
+      margin: 16px 0 20px;
+      padding: 22px;
+      text-align: center;
+      border: 3px dashed #183546;
+      border-radius: 20px;
+    }
+
+    .choices {
+      display: grid;
+      gap: 11px;
+    }
+
+    .choice {
+      width: 100%;
+      min-height: 62px;
+      display: flex;
+      align-items: center;
+      text-align: left;
+      gap: 13px;
+      padding: 12px 16px;
+      border: 3px solid #183546;
+      border-radius: 16px;
+      cursor: pointer;
+      box-shadow: 0 3px 0 #183546;
+      transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+    }
+
+    .choice:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 0 #183546;
+    }
+
+    .choice:active:not(:disabled) {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 #183546;
+    }
+
+    .choice:disabled { cursor: default; opacity: .72; }
+
+    .choice.correct-choice {
+      background: #bfe8cf !important;
+      border-color: #197344;
+    }
+
+    .choice.wrong-choice {
+      background: #ffd7cd !important;
+      border-color: #bd4538;
+    }
+
+    .letter-badge {
+      width: 30px;
+      height: 30px;
+      flex: 0 0 auto;
+      display: grid;
+      place-items: center;
+      border: 2px solid #183546;
+      border-radius: 50%;
+      background: #fffdf6;
+      font-weight: 800;
+    }
+
+    .hint-button, .next-button, .restart-button {
+      border: 3px solid #183546;
+      border-radius: 14px;
+      cursor: pointer;
+      box-shadow: 0 3px 0 #183546;
+      transition: transform .15s ease, box-shadow .15s ease;
+    }
+
+    .hint-button:hover, .next-button:hover, .restart-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 0 #183546;
+    }
+
+    .hint-button:active, .next-button:active, .restart-button:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 #183546;
+    }
+
+    .hint-button {
+      margin-top: 17px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 15px;
+      font-weight: 700;
+    }
+
+    .hint-box, .feedback {
+      margin-top: 16px;
+      padding: 13px 16px;
+      border-radius: 14px;
+      border: 2px solid #183546;
+    }
+
+    .feedback { font-weight: 700; }
+
+    .next-wrap { margin-top: 18px; text-align: right; }
+
+    .next-button, .restart-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      padding: 11px 18px;
+      font-weight: 800;
+    }
+
+    .finish-screen {
+      text-align: center;
+      padding: 12px 0 4px;
+    }
+
+    .trophy {
+      width: 95px;
+      height: 95px;
+      margin: 6px auto 13px;
+      display: grid;
+      place-items: center;
+      border: 3px solid #183546;
+      border-radius: 28px;
+      background: #fff3b6;
+      transform: rotate(4deg);
+    }
+
+    .finish-score {
+      margin: 16px auto;
+      width: fit-content;
+      padding: 10px 20px;
+      border: 3px solid #183546;
+      border-radius: 999px;
+      background: #fffdf6;
+      font-size: 1.25rem;
+      font-weight: 800;
+    }
+
+    .restart-button { margin-top: 8px; }
+
+    .live-score { font-weight: 800; white-space: nowrap; }
+
+    button:focus-visible {
+      outline: 4px solid #236dff;
+      outline-offset: 3px;
+    }
+
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 540px) {
+      .game-shell { padding: 18px 13px 28px; }
+      .hero-inner { padding: 18px; }
+      .animal-orbit { width: 60px; height: 60px; }
+      .quiz-panel { padding: 18px; }
+      .score-strip { grid-template-columns: 1fr; }
+      .live-score { text-align: right; }
+    }
+  </style>
+  <script src="index_data/data_sdk.js" type="text/javascript"></script>
+  <script src="index_data/resizing_sdk.js" type="text/javascript"></script>
+ <style>*, ::before, ::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }/* ! tailwindcss v3.4.17 | MIT License | https://tailwindcss.com */*,::after,::before{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}::after,::before{--tw-content:''}:host,html{line-height:1.5;-webkit-text-size-adjust:100%;-moz-tab-size:4;tab-size:4;font-family:ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";font-feature-settings:normal;font-variation-settings:normal;-webkit-tap-highlight-color:transparent}body{margin:0;line-height:inherit}hr{height:0;color:inherit;border-top-width:1px}abbr:where([title]){-webkit-text-decoration:underline dotted;text-decoration:underline dotted}h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit}a{color:inherit;text-decoration:inherit}b,strong{font-weight:bolder}code,kbd,pre,samp{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-feature-settings:normal;font-variation-settings:normal;font-size:1em}small{font-size:80%}sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}sub{bottom:-.25em}sup{top:-.5em}table{text-indent:0;border-color:inherit;border-collapse:collapse}button,input,optgroup,select,textarea{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;letter-spacing:inherit;color:inherit;margin:0;padding:0}button,select{text-transform:none}button,input:where([type=button]),input:where([type=reset]),input:where([type=submit]){-webkit-appearance:button;background-color:transparent;background-image:none}:-moz-focusring{outline:auto}:-moz-ui-invalid{box-shadow:none}progress{vertical-align:baseline}::-webkit-inner-spin-button,::-webkit-outer-spin-button{height:auto}[type=search]{-webkit-appearance:textfield;outline-offset:-2px}::-webkit-search-decoration{-webkit-appearance:none}::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}summary{display:list-item}blockquote,dd,dl,figure,h1,h2,h3,h4,h5,h6,hr,p,pre{margin:0}fieldset{margin:0;padding:0}legend{padding:0}menu,ol,ul{list-style:none;margin:0;padding:0}dialog{padding:0}textarea{resize:vertical}input::placeholder,textarea::placeholder{opacity:1;color:#9ca3af}[role=button],button{cursor:pointer}:disabled{cursor:default}audio,canvas,embed,iframe,img,object,svg,video{display:block;vertical-align:middle}img,video{max-width:100%;height:auto}[hidden]:where(:not([hidden=until-found])){display:none}.m-0{margin:0px}.mb-0{margin-bottom:0px}.mb-2{margin-bottom:0.5rem}.mt-1{margin-top:0.25rem}.mt-2{margin-top:0.5rem}.mt-3{margin-top:0.75rem}.mt-5{margin-top:1.25rem}.inline-flex{display:inline-flex}.items-center{align-items:center}.gap-2{gap:0.5rem}.rounded-xl{border-radius:0.75rem}.border-\[3px\]{border-width:3px}.border-\[\#183546\]{--tw-border-opacity:1;border-color:rgb(24 53 70 / var(--tw-border-opacity, 1))}.bg-\[\#227d78\]{--tw-bg-opacity:1;background-color:rgb(34 125 120 / var(--tw-bg-opacity, 1))}.px-4{padding-left:1rem;padding-right:1rem}.py-2{padding-top:0.5rem;padding-bottom:0.5rem}.text-right{text-align:right}.font-bold{font-weight:700}.font-semibold{font-weight:600}.leading-tight{line-height:1.25}.text-white{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity, 1))}.shadow-\[0_3px_0_\#183546\]{--tw-shadow:0 3px 0 #183546;--tw-shadow-colored:0 3px 0 var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.transition{transition-property:color, background-color, border-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-text-decoration-color, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-text-decoration-color, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.hover\:-translate-y-0\.5:hover{--tw-translate-y:-0.125rem;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.hover\:shadow-\[0_5px_0_\#183546\]:hover{--tw-shadow:0 5px 0 #183546;--tw-shadow-colored:0 5px 0 var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.active\:translate-y-0\.5:active{--tw-translate-y:0.125rem;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.active\:shadow-\[0_1px_0_\#183546\]:active{--tw-shadow:0 1px 0 #183546;--tw-shadow-colored:0 1px 0 var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}</style></head>
+ <body data-template-id="__page-root" style="display: flow-root; background-image: linear-gradient(135deg, rgb(255, 249, 232), rgb(217, 241, 232)) !important; background-clip: border-box !important; background-size: 100vw 100vh !important;">
+  <div class="game-shell">
+   <header class="playboard">
+    <section data-template-id="hero-banner" class="hero canva-banner" style="background-image: linear-gradient(rgb(239, 125, 53), rgb(239, 125, 53)) !important; background-clip: border-box !important;">
+     <div class="hero-inner">
+      <div class="animal-orbit" aria-hidden="true">
+       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="rabbit" aria-hidden="true" style="width:38px;height:38px;stroke-width:2.4" class="lucide lucide-rabbit"><path d="M13 16a3 3 0 0 1 2.24 5"></path><path d="M18 12h.01"></path><path d="M18 21h-8a4 4 0 0 1-4-4 7 7 0 0 1 7-7h.2L9.6 6.4a1 1 0 1 1 2.8-2.8L15.8 7h.2c3.3 0 6 2.7 6 6v1a2 2 0 0 1-2 2h-1a3 3 0 0 0-3 3"></path><path d="M20 8.54V4a2 2 0 1 0-4 0v3"></path><path d="M7.612 12.524a3 3 0 1 0-1.6 4.3"></path></svg>
+      </div>
+      <div>
+       <h1 data-template-id="game-title" class="canva-text title-font m-0 leading-tight" style="white-space: pre-wrap !important; overflow-wrap: normal !important; line-height: normal !important; color: rgb(255, 253, 246) !important; --canva-color: #fffdf6ff; caret-color: rgb(255, 253, 246) !important; font-family: &quot;YAFdJrnVElk_0&quot;, &quot;auto&quot; !important; font-weight: 700 !important; font-style: normal !important; font-size: 2.25rem !important;" data-canva-font-size="2.25rem">動物成語小達人</h1>
+       <p data-template-id="game-subtitle" class="canva-text m-0 mt-1 font-semibold" style="white-space: pre-wrap !important; overflow-wrap: normal !important; line-height: normal !important; color: rgb(255, 253, 246) !important; --canva-color: #fffdf6ff; caret-color: rgb(255, 253, 246) !important; font-family: &quot;YAFdJvgJ5TU_0&quot;, &quot;auto&quot; !important; font-weight: 500 !important; font-style: normal !important; font-size: 1.125rem !important;" data-canva-font-size="1.125rem">猜一猜動物成語的意思，闖過三關吧！</p>
+      </div>
+     </div>
+    </section>
+    <div class="mt-5 text-right">
+     <button type="button" id="download-html-button" data-template-id="download-html-button" class="canva-button inline-flex items-center gap-2 rounded-xl border-[3px] border-[#183546] bg-[#227d78] px-4 py-2 font-bold text-white shadow-[0_3px_0_#183546] transition hover:-translate-y-0.5 hover:shadow-[0_5px_0_#183546] active:translate-y-0.5 active:shadow-[0_1px_0_#183546]" style="background-image: linear-gradient(rgb(34, 125, 120), rgb(34, 125, 120)) !important; background-clip: border-box !important; color: rgb(255, 253, 246) !important; --canva-color: #fffdf6ff; caret-color: rgb(255, 253, 246) !important; font-weight: 700 !important; font-style: normal !important;"> <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="download" aria-hidden="true" style="width:19px;height:19px" class="lucide lucide-download"><path d="M12 15V3"></path><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="m7 10 5 5 5-5"></path></svg><span data-template-id="download-html-button-text" class="canva-text" style="white-space: pre-wrap !important; overflow-wrap: normal !important; line-height: normal !important; color: rgb(255, 253, 246) !important; --canva-color: #fffdf6ff; caret-color: rgb(255, 253, 246) !important; font-family: &quot;YAFdJvgJ5TU_0&quot;, &quot;auto&quot; !important; font-weight: 700 !important; font-style: normal !important; font-size: 1.125rem !important;" data-canva-font-size="1.125rem">下載 HTML</span> </button>
+    </div>
+   </header>
+   <main class="playboard">
+    <section class="score-strip" aria-label="遊戲進度">
+     <div>
+      <p data-template-id="progress-label" class="canva-text m-0 mb-2 font-bold" style="white-space: pre-wrap !important; overflow-wrap: normal !important; line-height: normal !important; color: rgb(24, 53, 70) !important; --canva-color: #183546ff; caret-color: rgb(24, 53, 70) !important; font-family: &quot;YAFdJvgJ5TU_0&quot;, &quot;auto&quot; !important; font-weight: 700 !important; font-style: normal !important; font-size: 1.125rem !important;" data-canva-font-size="1.125rem">闖關進度</p>
+      <div class="meter-track" aria-hidden="true">
+       <div id="meter-fill" class="meter-fill" style="width: 10%;"></div>
+      </div>
+     </div>
+     <p class="live-score m-0" aria-live="polite"><span data-template-id="score-label" class="canva-text" style="white-space: pre-wrap !important; overflow-wrap: normal !important; line-height: normal !important; color: rgb(24, 53, 70) !important; --canva-color: #183546ff; caret-color: rgb(24, 53, 70) !important; font-family: &quot;YAFdJvgJ5TU_0&quot;, &quot;auto&quot; !important; font-weight: 700 !important; font-style: normal !important; font-size: 1.125rem !important;" data-canva-font-size="1.125rem">答對：</span><span id="score-value">0</span> / 10</p>
+    </section>
+    <section data-template-id="game-panel" class="quiz-panel canva-panel" style="background-image: linear-gradient(rgb(255, 253, 246), rgb(255, 253, 246)) !important; background-clip: border-box !important;">
+     
+     
+     
+     
+    <div class="quiz-screen" data-screen="0"><p class="round-kicker m-0">第 1 關・找找意思</p><h2 class="mt-3 mb-0 font-bold">「守株待兔」是在說什麼呢？</h2><div class="idiom-card"><p class="title-font m-0 font-bold" style="font-size:2rem">守株待兔</p></div><div class="choices" role="group" aria-label="答案選項"><button type="button" class="choice" data-index="0" data-correct="true"><span class="letter-badge">A</span><span>只等著好運自己來，不肯努力</span></button><button type="button" class="choice" data-index="0" data-correct="false"><span class="letter-badge">B</span><span>細心照顧一棵小樹</span></button><button type="button" class="choice" data-index="0" data-correct="false"><span class="letter-badge">C</span><span>每天到森林找兔子玩</span></button></div><button type="button" class="hint-button hint-toggle">💡 給我一個提示</button><p class="hint-box" hidden="">提示：農夫撿到一次撞樹的兔子後，只坐在樹旁等待。</p><p class="feedback wrong-box" hidden="">再想一想，看看提示後再試一次吧！</p><p class="feedback correct-box" hidden="">答對了！你真是成語小達人！</p><div class="next-wrap" hidden=""><button type="button" class="next-button next-action">前往下一關 →</button></div></div><div class="quiz-screen" data-screen="1" hidden=""><p class="round-kicker m-0">第 2 關・找找意思</p><h2 class="mt-3 mb-0 font-bold">「杯弓蛇影」是在說什麼呢？</h2><div class="idiom-card"><p class="title-font m-0 font-bold" style="font-size:2rem">杯弓蛇影</p></div><div class="choices" role="group" aria-label="答案選項"><button type="button" class="choice" data-index="1" data-correct="false"><span class="letter-badge">A</span><span>杯子裡有蛇</span></button><button type="button" class="choice" data-index="1" data-correct="true"><span class="letter-badge">B</span><span>因疑神疑鬼而自相驚擾</span></button><button type="button" class="choice" data-index="1" data-correct="false"><span class="letter-badge">C</span><span>害怕爬蟲類</span></button></div><button type="button" class="hint-button hint-toggle">💡 給我一個提示</button><p class="hint-box" hidden="">提示：把弓的影子誤以為是蛇。</p><p class="feedback wrong-box" hidden="">再想一想，看看提示後再試一次吧！</p><p class="feedback correct-box" hidden="">答對了！你真是成語小達人！</p><div class="next-wrap" hidden=""><button type="button" class="next-button next-action">前往下一關 →</button></div></div><div class="quiz-screen" data-screen="2" hidden=""><p class="round-kicker m-0">第 3 關・找找意思</p><h2 class="mt-3 mb-0 font-bold">「狐假虎威」是在說什麼呢？</h2><div class="idiom-card"><p class="title-font m-0 font-bold" style="font-size:2rem">狐假虎威</p></div><div class="choices" role="group" aria-label="答案選項"><button type="button" class="choice" data-index="2" data-correct="false"><span class="letter-badge">A</span><span>狐狸和老虎是好朋友</span></button><button type="button" class="choice" data-index="2" data-correct="false"><span class="letter-badge">B</span><span>老虎假裝成狐狸</span></button><button type="button" class="choice" data-index="2" data-correct="true"><span class="letter-badge">C</span><span>借著別人的力量來嚇唬人</span></button></div><button type="button" class="hint-button hint-toggle">💡 給我一個提示</button><p class="hint-box" hidden="">提示：狐狸借用了老虎的威風。</p><p class="feedback wrong-box" hidden="">再想一想，看看提示後再試一次吧！</p><p class="feedback correct-box" hidden="">答對了！你真是成語小達人！</p><div class="next-wrap" hidden=""><button type="button" class="next-button next-action">前往下一關 →</button></div></div><div class="quiz-screen" data-screen="3" hidden=""><p class="round-kicker m-0">第 4 關・找找意思</p><h2 class="mt-3 mb-0 font-bold">「龍飛鳳舞」是在說什麼呢？</h2><div class="idiom-card"><p class="title-font m-0 font-bold" style="font-size:2rem">龍飛鳳舞</p></div><div class="choices" role="group" aria-label="答案選項"><button type="button" class="choice" data-index="3" data-correct="false"><span class="letter-badge">A</span><span>龍和鳳一起跳舞</span></button><button type="button" class="choice" data-index="3" data-correct="true"><span class="letter-badge">B</span><span>字體或景物氣勢生動</span></button><button type="button" class="choice" data-index="3" data-correct="false"><span class="letter-badge">C</span><span>動物正在飛翔</span></button></div><button type="button" class="hint-button hint-toggle">💡 給我一個提示</button><p class="hint-box" hidden="">提示：常用來形容書法筆勢有力。</p><p class="feedback wrong-box" hidden="">再想一想，看看提示後再試一次吧！</p><p class="feedback correct-box" hidden="">答對了！你真是成語小達人！</p><div class="next-wrap" hidden=""><button type="button" class="next-button next-action">前往下一關 →</button></div></div><div class="quiz-screen" data-screen="4" hidden=""><p class="round-kicker m-0">第 5 關・找找意思</p><h2 class="mt-3 mb-0 font-bold">「井底之蛙」是在說什麼呢？</h2><div class="idiom-card"><p class="title-font m-0 font-bold" style="font-size:2rem">井底之蛙</p></div><div class="choices" role="group" aria-label="答案選項"><button type="button" class="choice" data-index="4" data-correct="false"><span class="letter-badge">A</span><span>青蛙住在很深的井裡</span></button><button type="button" class="choice" data-index="4" data-correct="true"><span class="letter-badge">B</span><span>見識很少，眼光不夠廣闊</span></button><button type="button" class="choice" data-index="4" data-correct="false"><span class="letter-badge">C</span><span>很會游泳和跳躍</span></button></div><button type="button" class="hint-button hint-toggle">💡 給我一個提示</button><p class="hint-box" hidden="">提示：在井底只能看到一小塊天空。</p><p class="feedback wrong-box" hidden="">再想一想，看看提示後再試一次吧！</p><p class="feedback correct-box" hidden="">答對了！你真是成語小達人！</p><div class="next-wrap" hidden=""><button type="button" class="next-button next-action">前往下一關 →</button></div></div><div class="quiz-screen" data-screen="5" hidden=""><p class="round-kicker m-0">第 6 關・找找意思</p><h2 class="mt-3 mb-0 font-bold">「虎頭蛇尾」是在說什麼呢？</h2><div class="idiom-card"><p class="title-font m-0 font-bold" style="font-size:2rem">虎頭蛇尾</p></div><div class="choices" role="group" aria-label="答案選項"><button type="button" class="choice" data-index="5" data-correct="false"><span class="letter-badge">A</span><span>老虎和蛇是朋友</span></button><button type="button" class="choice" data-index="5" data-correct="true"><span class="letter-badge">B</span><span>開始聲勢很大，後來卻做不好</span></button><button type="button" class="choice" data-index="5" data-correct="false"><span class="letter-badge">C</span><span>動物跑得很快</span></button></div><button type="button" class="hint-button hint-toggle">💡 給我一個提示</button><p class="hint-box" hidden="">提示：開頭像虎威猛，結尾卻像蛇無力。</p><p class="feedback wrong-box" hidden="">再想一想，看看提示後再試一次吧！</p><p class="feedback correct-box" hidden="">答對了！你真是成語小達人！</p><div class="next-wrap" hidden=""><button type="button" class="next-button next-action">前往下一關 →</button></div></div><div class="quiz-screen" data-screen="6" hidden=""><p class="round-kicker m-0">第 7 關・找找意思</p><h2 class="mt-3 mb-0 font-bold">「畫龍點睛」是在說什麼呢？</h2><div class="idiom-card"><p class="title-font m-0 font-bold" style="font-size:2rem">畫龍點睛</p></div><div class="choices" role="group" aria-label="答案選項"><button type="button" class="choice" data-index="6" data-correct="false"><span class="letter-badge">A</span><span>把龍畫得很大</span></button><button type="button" class="choice" data-index="6" data-correct="true"><span class="letter-badge">B</span><span>在關鍵地方加上重要的一筆</span></button><button type="button" class="choice" data-index="6" data-correct="false"><span class="letter-badge">C</span><span>替動物畫眼睛</span></button></div><button type="button" class="hint-button hint-toggle">💡 給我一個提示</button><p class="hint-box" hidden="">提示：最後一筆讓整幅畫活了起來。</p><p class="feedback wrong-box" hidden="">再想一想，看看提示後再試一次吧！</p><p class="feedback correct-box" hidden="">答對了！你真是成語小達人！</p><div class="next-wrap" hidden=""><button type="button" class="next-button next-action">前往下一關 →</button></div></div><div class="quiz-screen" data-screen="7" hidden=""><p class="round-kicker m-0">第 8 關・找找意思</p><h2 class="mt-3 mb-0 font-bold">「亡羊補牢」是在說什麼呢？</h2><div class="idiom-card"><p class="title-font m-0 font-bold" style="font-size:2rem">亡羊補牢</p></div><div class="choices" role="group" aria-label="答案選項"><button type="button" class="choice" data-index="7" data-correct="false"><span class="letter-badge">A</span><span>養很多羊</span></button><button type="button" class="choice" data-index="7" data-correct="true"><span class="letter-badge">B</span><span>出了問題後及時補救</span></button><button type="button" class="choice" data-index="7" data-correct="false"><span class="letter-badge">C</span><span>把羊送回家</span></button></div><button type="button" class="hint-button hint-toggle">💡 給我一個提示</button><p class="hint-box" hidden="">提示：羊圈破了，修好還不算太晚。</p><p class="feedback wrong-box" hidden="">再想一想，看看提示後再試一次吧！</p><p class="feedback correct-box" hidden="">答對了！你真是成語小達人！</p><div class="next-wrap" hidden=""><button type="button" class="next-button next-action">前往下一關 →</button></div></div><div class="quiz-screen" data-screen="8" hidden=""><p class="round-kicker m-0">第 9 關・找找意思</p><h2 class="mt-3 mb-0 font-bold">「馬到成功」是在說什麼呢？</h2><div class="idiom-card"><p class="title-font m-0 font-bold" style="font-size:2rem">馬到成功</p></div><div class="choices" role="group" aria-label="答案選項"><button type="button" class="choice" data-index="8" data-correct="false"><span class="letter-badge">A</span><span>騎馬去旅行</span></button><button type="button" class="choice" data-index="8" data-correct="true"><span class="letter-badge">B</span><span>事情一開始就取得成功</span></button><button type="button" class="choice" data-index="8" data-correct="false"><span class="letter-badge">C</span><span>跑得比馬快</span></button></div><button type="button" class="hint-button hint-toggle">💡 給我一個提示</button><p class="hint-box" hidden="">提示：祝人做事順利，很快成功。</p><p class="feedback wrong-box" hidden="">再想一想，看看提示後再試一次吧！</p><p class="feedback correct-box" hidden="">答對了！你真是成語小達人！</p><div class="next-wrap" hidden=""><button type="button" class="next-button next-action">前往下一關 →</button></div></div><div class="quiz-screen" data-screen="9" hidden=""><p class="round-kicker m-0">第 10 關・找找意思</p><h2 class="mt-3 mb-0 font-bold">「對牛彈琴」是在說什麼呢？</h2><div class="idiom-card"><p class="title-font m-0 font-bold" style="font-size:2rem">對牛彈琴</p></div><div class="choices" role="group" aria-label="答案選項"><button type="button" class="choice" data-index="9" data-correct="false"><span class="letter-badge">A</span><span>為牛演奏音樂</span></button><button type="button" class="choice" data-index="9" data-correct="true"><span class="letter-badge">B</span><span>對不懂道理的人講深奧道理</span></button><button type="button" class="choice" data-index="9" data-correct="false"><span class="letter-badge">C</span><span>牛喜歡聽琴聲</span></button></div><button type="button" class="hint-button hint-toggle">💡 給我一個提示</button><p class="hint-box" hidden="">提示：不是每個聽眾都能理解同樣的道理。</p><p class="feedback wrong-box" hidden="">再想一想，看看提示後再試一次吧！</p><p class="feedback correct-box" hidden="">答對了！你真是成語小達人！</p><div class="next-wrap" hidden=""><button type="button" class="next-button next-action">查看我的成績 →</button></div></div><div id="finish-screen" class="finish-screen" hidden=""><div class="trophy">🏆</div><h2 class="title-font m-0">你完成挑戰了！</h2><p class="mt-2 mb-0 font-semibold">你已經認識了十個有趣的動物成語！</p><p class="finish-score">本次得分：<span id="finish-score-value">0</span> / 10</p><button type="button" id="restart-button" class="restart-button">🔄 再玩一次</button></div></section>
+   </main>
+  </div>
+  <script src="index_data/editing_sdk.js"></script>
+  <script>
+    const idiomBank = [
+      ["井底之蛙", "見識很少，眼光不夠廣闊", ["青蛙住在很深的井裡", "見識很少，眼光不夠廣闊", "很會游泳和跳躍"], "在井底只能看到一小塊天空。"],
+      ["狐假虎威", "借著別人的力量來嚇唬人", ["狐狸和老虎是好朋友", "老虎假裝成狐狸", "借著別人的力量來嚇唬人"], "狐狸借用了老虎的威風。"],
+      ["守株待兔", "只等著好運自己來，不肯努力", ["只等著好運自己來，不肯努力", "細心照顧一棵小樹", "每天到森林找兔子玩"], "農夫撿到一次撞樹的兔子後，只坐在樹旁等待。"],
+      ["畫龍點睛", "在關鍵地方加上重要的一筆", ["把龍畫得很大", "在關鍵地方加上重要的一筆", "替動物畫眼睛"], "最後一筆讓整幅畫活了起來。"],
+      ["馬到成功", "事情一開始就取得成功", ["騎馬去旅行", "事情一開始就取得成功", "跑得比馬快"], "祝人做事順利，很快成功。"],
+      ["亡羊補牢", "出了問題後及時補救", ["養很多羊", "出了問題後及時補救", "把羊送回家"], "羊圈破了，修好還不算太晚。"],
+      ["一箭雙鵰", "做一件事得到兩個收穫", ["射箭很準", "做一件事得到兩個收穫", "兩隻鳥一起飛"], "一支箭同時射中兩隻鳥。"],
+      ["如魚得水", "得到適合自己的環境或幫助", ["在水中游泳", "得到適合自己的環境或幫助", "魚喝了很多水"], "魚回到水中就自在了。"],
+      ["鶴立雞群", "才能或外表特別突出", ["鶴和雞住在一起", "才能或外表特別突出", "雞群會飛"], "高大的鶴站在雞群中特別顯眼。"],
+      ["對牛彈琴", "對不懂道理的人講深奧道理", ["為牛演奏音樂", "對不懂道理的人講深奧道理", "牛喜歡聽琴聲"], "不是每個聽眾都能理解同樣的道理。"],
+      ["狐朋狗友", "品行不端的朋友", ["狐狸和狗是朋友", "品行不端的朋友", "喜歡養寵物"], "用來形容不好的朋友。"],
+      ["龍飛鳳舞", "字體或景物氣勢生動", ["龍和鳳一起跳舞", "字體或景物氣勢生動", "動物正在飛翔"], "常用來形容書法筆勢有力。"],
+      ["鷸蚌相爭", "雙方爭鬥讓第三者得利", ["鳥和貝殼比賽", "雙方爭鬥讓第三者得利", "海邊風景很美"], "鷸和蚌相持，漁翁反而得利。"],
+      ["杯弓蛇影", "因疑神疑鬼而自相驚擾", ["杯子裡有蛇", "因疑神疑鬼而自相驚擾", "害怕爬蟲類"], "把弓的影子誤以為是蛇。"],
+      ["虎頭蛇尾", "開始聲勢很大，後來卻做不好", ["老虎和蛇是朋友", "開始聲勢很大，後來卻做不好", "動物跑得很快"], "開頭像虎威猛，結尾卻像蛇無力。"],
+      ["雞犬不寧", "受到騷擾而不得安寧", ["雞和狗睡不著", "受到騷擾而不得安寧", "農場很熱鬧"], "連雞狗都被吵得不得安寧。"],
+      ["鴉雀無聲", "非常安靜，一點聲音也沒有", ["烏鴉和麻雀不說話", "非常安靜，一點聲音也沒有", "鳥兒正在唱歌"], "連烏鴉和麻雀的聲音都聽不到。"],
+      ["狼吞虎嚥", "吃東西又快又急", ["狼和老虎吃飯", "吃東西又快又急", "食物很美味"], "像狼和老虎一樣急著把食物吃下。"],
+      ["膽小如鼠", "膽子非常小", ["老鼠很可愛", "膽子非常小", "害怕黑暗"], "膽量小得像老鼠一樣。"],
+      ["鵬程萬里", "前途非常遠大", ["大鳥飛一萬里", "前途非常遠大", "旅程需要很久"], "祝願別人前程遠大。"]
+    ];
+    let score = 0;
+    let current = 0;
+    let gameQuestions = [];
+    const answered = new Set();
+
+    function updateScore() {
+      const scoreValue = document.getElementById("score-value");
+      const finishScoreValue = document.getElementById("finish-score-value");
+      if (scoreValue) scoreValue.textContent = String(score);
+      if (finishScoreValue) finishScoreValue.textContent = String(score);
+    }
+
+    function updateProgress(questionNumber) {
+      document.getElementById("meter-fill").style.width = (questionNumber / gameQuestions.length * 100) + "%";
+    }
+
+    function buildQuiz() {
+      const panel = document.querySelector(".quiz-panel");
+      panel.querySelectorAll(".quiz-screen, #finish-screen").forEach(el => el.remove());
+      gameQuestions = [...idiomBank].sort(() => Math.random() - .5).slice(0, 10);
+      current = 0; score = 0; answered.clear();
+      gameQuestions.forEach((item, index) => {
+        const choices = item[2].map((choice, i) => `<button type="button" class="choice" data-index="${index}" data-correct="${choice === item[1]}"><span class="letter-badge">${String.fromCharCode(65+i)}</span><span>${choice}</span></button>`).join("");
+        panel.insertAdjacentHTML("beforeend", `<div class="quiz-screen" data-screen="${index}"><p class="round-kicker m-0">第 ${index+1} 關・找找意思</p><h2 class="mt-3 mb-0 font-bold">「${item[0]}」是在說什麼呢？</h2><div class="idiom-card"><p class="title-font m-0 font-bold" style="font-size:2rem">${item[0]}</p></div><div class="choices" role="group" aria-label="答案選項">${choices}</div><button type="button" class="hint-button hint-toggle">💡 給我一個提示</button><p class="hint-box" hidden>提示：${item[3]}</p><p class="feedback wrong-box" hidden>再想一想，看看提示後再試一次吧！</p><p class="feedback correct-box" hidden>答對了！你真是成語小達人！</p><div class="next-wrap" hidden><button type="button" class="next-button next-action">${index === 9 ? "查看我的成績" : "前往下一關"} →</button></div></div>`);
+      });
+      panel.insertAdjacentHTML("beforeend", `<div id="finish-screen" class="finish-screen" hidden><div class="trophy">🏆</div><h2 class="title-font m-0">你完成挑戰了！</h2><p class="mt-2 mb-0 font-semibold">你已經認識了十個有趣的動物成語！</p><p class="finish-score">本次得分：<span id="finish-score-value">0</span> / 10</p><button type="button" id="restart-button" class="restart-button">🔄 再玩一次</button></div>`);
+      panel.querySelectorAll(".quiz-screen").forEach((screen, i) => screen.hidden = i !== 0);
+      panel.querySelectorAll(".choice").forEach(btn => btn.addEventListener("click", () => answerQuestion(btn)));
+      panel.querySelectorAll(".hint-toggle").forEach(btn => btn.addEventListener("click", () => btn.nextElementSibling.hidden = !btn.nextElementSibling.hidden));
+      panel.querySelectorAll(".next-action").forEach(btn => btn.addEventListener("click", () => showQuestion(current + 1)));
+      document.getElementById("restart-button").addEventListener("click", buildQuiz);
+      updateScore(); updateProgress(1);
+    }
+
+    function answerQuestion(button) {
+      const screen = button.closest(".quiz-screen");
+      const index = Number(button.dataset.index);
+      if (answered.has(index)) return;
+      if (button.dataset.correct === "true") {
+        answered.add(index); score++; updateScore();
+        screen.querySelectorAll(".choice").forEach(choice => { choice.disabled = true; if (choice.dataset.correct === "true") choice.classList.add("correct-choice"); });
+        screen.querySelector(".correct-box").hidden = false; screen.querySelector(".next-wrap").hidden = false;
+      } else { button.disabled = true; button.classList.add("wrong-choice"); screen.querySelector(".wrong-box").hidden = false; }
+    }
+
+    function showQuestion(number) {
+      document.querySelectorAll(".quiz-screen").forEach(screen => screen.hidden = true);
+      if (number >= gameQuestions.length) { document.getElementById("finish-screen").hidden = false; updateProgress(gameQuestions.length); return; }
+      current = number; document.querySelector(`[data-screen="${number}"]`).hidden = false; updateProgress(number + 1);
+    }
+
+    function downloadCurrentHtml(event) {
+      if (event) event.preventDefault();
+      const html = '<!doctype html>\n' + document.documentElement.outerHTML;
+      const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = '動物成語小達人.html';
+      link.setAttribute('aria-hidden', 'true');
+      link.style.position = 'fixed';
+      link.style.left = '-9999px';
+      document.body.appendChild(link);
+      link.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+      requestAnimationFrame(() => {
+        link.remove();
+        URL.revokeObjectURL(url);
+      });
+    }
+
+    document.addEventListener('click', (event) => {
+      const downloadButton = event.target.closest('#download-html-button');
+      if (downloadButton) downloadCurrentHtml(event);
+    });
+    buildQuiz();
+    lucide.createIcons();
+  </script><!--
+    function updateScore() {
+      document.getElementById("score-value").textContent = score;
+      document.getElementById("finish-score-value").textContent = score;
+    }
+
+    function updateProgress(questionNumber) {
+      document.getElementById("meter-fill").style.width = (questionNumber * 33.333) + "%";
+    }
+
+    function answerQuestion(button) {
+      const question = button.dataset.question;
+      if (answered.has(question)) return;
+
+      const isCorrect = button.dataset.correct === "true";
+      const wrongFeedback = document.getElementById("wrong-" + question);
+      const correctFeedback = document.getElementById("correct-" + question);
+
+      if (isCorrect) {
+        answered.add(question);
+        score += 1;
+        updateScore();
+
+        document.querySelectorAll('[data-question="' + question + '"]').forEach(function(choice) {
+          choice.disabled = true;
+          if (choice.dataset.correct === "true") choice.classList.add("correct-choice");
+        });
+
+        wrongFeedback.hidden = true;
+        correctFeedback.hidden = false;
+        document.getElementById("next-wrap-" + question).hidden = false;
+      } else {
+        button.disabled = true;
+        button.classList.add("wrong-choice");
+        wrongFeedback.hidden = false;
+      }
+    }
+
+    function showQuestion(next) {
+      document.querySelectorAll(".quiz-screen").forEach(function(screen) {
+        screen.hidden = true;
+      });
+
+      if (next === "finish") {
+        document.getElementById("finish-screen").hidden = false;
+        updateProgress(3);
+        return;
+      }
+
+      document.getElementById("question-" + next).hidden = false;
+      document.getElementById("finish-screen").hidden = true;
+      updateProgress(Number(next));
+    }
+
+    function restartGame() {
+      score = 0;
+      answered.clear();
+      updateScore();
+      updateProgress(1);
+
+      document.querySelectorAll(".choice").forEach(function(choice) {
+        choice.disabled = false;
+        choice.classList.remove("correct-choice", "wrong-choice");
+      });
+
+      document.querySelectorAll(".feedback, .hint-box, .next-wrap").forEach(function(element) {
+        element.hidden = true;
+      });
+
+      showQuestion("1");
+    }
+
+    document.querySelectorAll(".choice").forEach(function(button) {
+      button.addEventListener("click", function() {
+        answerQuestion(button);
+      });
+    });
+
+    document.querySelectorAll("[data-hint]").forEach(function(button) {
+      button.addEventListener("click", function() {
+        const hint = document.getElementById(button.dataset.hint);
+        hint.hidden = !hint.hidden;
+      });
+    });
+
+    document.querySelectorAll("[data-next]").forEach(function(button) {
+      button.addEventListener("click", function() {
+        showQuestion(button.dataset.next);
+      });
+    });
+
+    document.getElementById("restart-button").addEventListener("click", restartGame);
+
+    lucide.createIcons();
+    updateScore();
+    updateProgress(1);
+  </script>
+-->
+ 
+<canva-element-overlay style="position: fixed; z-index: 2147483647; pointer-events: none;"></canva-element-overlay></body></html>
