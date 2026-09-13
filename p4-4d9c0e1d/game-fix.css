@@ -1,0 +1,2 @@
+.route-board.solo{grid-template-columns:1fr;max-width:900px;margin:12px auto}
+@media(max-width:600px){.park-game{aspect-ratio:3/2}.park-game>img{object-fit:fill}}
