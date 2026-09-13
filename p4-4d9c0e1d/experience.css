@@ -1,0 +1,4 @@
+.scene-window{aspect-ratio:4/3}
+.scene-window img{height:auto;min-height:100%;object-fit:cover}
+@media(max-width:760px){.scene-window{aspect-ratio:1/1}}
+.route-board.solo{grid-template-columns:1fr;max-width:900px;margin:12px auto}
